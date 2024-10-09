@@ -1,5 +1,5 @@
 variable "vpc_id" {
-  description = "The ID of the VPC where the subnet will be created"
+  description = "The ID of the VPC"
   type        = string
   default     = "vpc-01b834daa2d67cdaa"
 }
@@ -19,4 +19,10 @@ variable "availability_zone" {
   description = "The availability zone where the subnet will be created"
   type        = string
   default     = "eu-west-1a"
+}
+
+variable "bucket_name" {
+  description = "The availability zone where the subnet will be created"
+  type        = string
+  default     = "kobi-k-bukcet"
 }
