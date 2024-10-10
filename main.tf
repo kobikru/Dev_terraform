@@ -7,21 +7,21 @@ terraform {
   }
   required_version = ">= 1.0"
 }
-data "dotenv_file" "env_vars" {
+data "dotenv" "app" {
   filename = ".env"
 }
 
-locals {
+# locals {
   # aws_access_key = data.dotenv_file.env_vars.vars["AWS_ACCESS_KEY_ID"]
   # aws_secret_key = data.dotenv_file.env_vars.vars["AWS_SECRET_ACCESS_KEY"]
-  aws_region     = data.dotenv_file.env_vars.vars["AWS_REGION"]
-  aws_user_arn     = data.dotenv_file.env_vars.vars["AWS_USER_ARN"]
-}
+#   aws_region     = data.dotenv.env.vars["AWS_REGION"]
+#   aws_user_arn     = data.dotenv.env.vars["AWS_USER_ARN"]
+# }
 
 # provider "aws" {
 #   access_key = local.aws_access_key
 #   secret_key = local.aws_secret_key
-#   region     = local.aws_region
+# #   region     = local.aws_region
 #   user_arn   = local.aws_user_arn
 # }
 
@@ -61,9 +61,9 @@ resource "aws_route_table_association" "kobi_route_table_association_2" {
   route_table_id = aws_route_table.kobi_route_table.id
 }
 resource "aws_route" "kobi_route_to_nat_gateway" {
-  route_table_id         = var.route_table_id // Replace with your Route Table ID
-  destination_cidr_block = var.vpc_id// Replace with your VPC CIDR range
-  nat_gateway_id         = "nat-0440e3c0e49d26497" // Replace with your NAT Gateway ID
+  route_table_id         = aws_route_table.kobi_route_table.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = "nat-0440e3c0e49d26497" 
 }
 
 resource "aws_s3_bucket_policy" "workshop_bucket_policy" {
@@ -76,7 +76,7 @@ resource "aws_s3_bucket_policy" "workshop_bucket_policy" {
         Sid       = "AllowUserAccess"
         Effect    = "Allow"
         Principal = {
-          AWS = user_arn
+          AWS = "arn:aws:iam::730335218716:user/kobi-user"
         }
         Action = [
           "s3:GetObject",
