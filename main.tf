@@ -1,31 +1,3 @@
-terraform {
-  required_providers {
-    dotenv = {
-      source  = "germanbrew/dotenv"
-      version = "1.0.0" # Adjust to the latest version
-    }
-  }
-  required_version = ">= 1.0"
-}
-data "dotenv" "app" {
-  filename = ".env"
-}
-
-# locals {
-  # aws_access_key = data.dotenv_file.env_vars.vars["AWS_ACCESS_KEY_ID"]
-  # aws_secret_key = data.dotenv_file.env_vars.vars["AWS_SECRET_ACCESS_KEY"]
-#   aws_region     = data.dotenv.env.vars["AWS_REGION"]
-#   aws_user_arn     = data.dotenv.env.vars["AWS_USER_ARN"]
-# }
-
-# provider "aws" {
-#   access_key = local.aws_access_key
-#   secret_key = local.aws_secret_key
-# #   region     = local.aws_region
-#   user_arn   = local.aws_user_arn
-# }
-
-provider "dotenv" {}
 resource "aws_subnet" "kobi_subnet" {
   vpc_id            = var.vpc_id
   cidr_block        = var.subnet_cidr_1
@@ -41,6 +13,70 @@ resource "aws_subnet" "kobi_subnet_2" {
   availability_zone = var.availability_zone
   tags = {
     Name = "kobi-subnet-2"
+  }
+}
+
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
+
+  cluster_name    = "Kobi-cluster"
+  cluster_version = "1.29"
+
+  cluster_endpoint_public_access  = true
+
+  cluster_addons = {
+    coredns   = {
+      addon_version            = "v1.11.3-eksbuild.1"
+    }
+     aws-ebs-csi-driver = {}
+
+  }
+
+  vpc_id                   = var.vpc_id
+  subnet_ids               = [aws_subnet.kobi_subnet.id, aws_subnet.kobi_subnet.id-2]
+  control_plane_subnet_ids = [aws_subnet.kobi_subnet.id, aws_subnet.kobi_subnet.id-2]
+
+  # EKS Managed Node Group(s)
+  eks_managed_node_group_defaults = {
+    instance_types = ["m6i.large", "m5.large", "m5n.large", "m5zn.large"]
+  }
+
+  eks_managed_node_groups = {
+    example = {
+      instance_types = ["t2.small"]
+
+      min_size     = 2
+      max_size     = 10
+      desired_size = 2
+    }
+  }
+
+  # Cluster access entry
+  # To add the current caller identity as an administrator
+  enable_cluster_creator_admin_permissions = true
+
+  access_entries = {
+    # One access entry with a policy associated
+    example = {
+      kubernetes_groups = []
+      principal_arn     = "arn:aws:iam::730335218716:user/kobi-user"
+
+      policy_associations = {
+        example = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"
+          access_scope = {
+            namespaces = ["default"]
+            type       = "namespace"
+          }
+        }
+      }
+    }
+  }
+
+  tags = {
+    Environment = "dev"
+    Terraform   = "true"
   }
 }
 
@@ -65,7 +101,6 @@ resource "aws_route" "kobi_route_to_nat_gateway" {
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = "nat-0440e3c0e49d26497" 
 }
-
 resource "aws_s3_bucket_policy" "workshop_bucket_policy" {
   bucket = "kobi-k-bukcet" 
 
