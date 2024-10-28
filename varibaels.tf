@@ -20,6 +20,11 @@ variable "availability_zone" {
   type        = string
   default     = "eu-west-1a"
 }
+variable "availability_zone_2" {
+  description = "The availability zone where the subnet will be created"
+  type        = string
+  default     = "eu-west-1b"
+}
 
 variable "bucket_name" {
   description = "The availability zone where the subnet will be created"
