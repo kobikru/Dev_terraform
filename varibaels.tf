@@ -15,7 +15,7 @@ variable "subnet_cidr_2" {
   default     = "192.168.15.0/24"
 }
 
-variable "availability_zone" {
+variable "availability_zone_1" {
   description = "The availability zone where the subnet will be created"
   type        = string
   default     = "eu-west-1a"
@@ -24,10 +24,4 @@ variable "availability_zone_2" {
   description = "The availability zone where the subnet will be created"
   type        = string
   default     = "eu-west-1b"
-}
-
-variable "bucket_name" {
-  description = "The availability zone where the subnet will be created"
-  type        = string
-  default     = "kobi-k-bukcet"
 }
