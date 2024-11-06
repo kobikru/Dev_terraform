@@ -25,3 +25,8 @@ variable "availability_zone_2" {
   type        = string
   default     = "eu-west-1b"
 }
+variable "nat_gateway_id" {
+  description = "The nat gateway id"
+  type        = string
+  default     = "nat-0440e3c0e49d26497"
+}

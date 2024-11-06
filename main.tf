@@ -11,7 +11,7 @@ resource "aws_subnet" "kobi_subnet" {
 resource "aws_subnet" "kobi_subnet_2" {
   vpc_id            = var.vpc_id
   cidr_block        = var.subnet_cidr_2
-  availability_zone = var.availability_zone_
+  availability_zone = var.availability_zone_2
   tags = {
     Name = "kobi-subnet-2"
   }
@@ -22,7 +22,7 @@ resource "aws_route_table" "kobi_route" {
 
   route {
     cidr_block = "0.0.0.0/0"
-    nat_gateway_id = "nat-0440e3c0e49d26497"
+    nat_gateway_id = var.nat_gateway_id
   }
 }
 resource "aws_route_table_association" "kobi_cidr_association_b" {  
