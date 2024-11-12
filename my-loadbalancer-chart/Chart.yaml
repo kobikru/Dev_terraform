@@ -1,0 +1,4 @@
+apiVersion: v2
+name: my-loadbalancer
+description: A Helm chart for deploying a LoadBalancer and application
+version: 0.1.0

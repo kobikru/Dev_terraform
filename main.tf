@@ -1,3 +1,25 @@
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.cluster_name
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks.cluster_name
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.cluster.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = data.aws_eks_cluster.cluster.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+}
+
 
 resource "aws_subnet" "kobi_subnet" {
   vpc_id            = var.vpc_id
@@ -54,7 +76,7 @@ module "eks" {
 
 
   vpc_id  = var.vpc_id
-  subnet_ids  = [aws_subnet.kobi_subnet.id, aws_subnet.kobi_subnet_2.id] # Corrected
+  subnet_ids  = [aws_subnet.kobi_subnet.id, aws_subnet.kobi_subnet_2.id] 
 
 
   eks_managed_node_groups = {
@@ -71,6 +93,76 @@ module "eks" {
     Name ="Kobi_cluster"
     Environment = "dev"
     Terraform   = "true"
+  }
+}
+
+resource "helm_release" "aws_load_balancer_controller" {
+  name       = "aws-load-balancer-controller"
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+
+  set {
+    name  = "clusterName"
+    value = "my-cluster"
+  }
+
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+
+  depends_on = [module.eks]
+}
+
+resource "helm_release" "loadbalancer" {
+  name       = "my-loadbalancer"
+  chart      = "${path.module}/my-loadbalancer-chart"
+  namespace  = "default"
+
+  values = [
+    file("${path.module}/loadbalancer-values.yaml")
+  ]
+
+  set {
+    name  = "service.certArn"
+    value = "arn:aws:acm:eu-west-1:730335218716:certificate/8f4eeeea-9a1d-443c-a8c8-4de7f8b19aec"
+  }
+
+  depends_on = [helm_release.aws_load_balancer_controller]
+}
+
+resource "kubernetes_service_account" "aws_load_balancer_controller" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+    labels = {
+      "app.kubernetes.io/component" = "controller"
+      "app.kubernetes.io/name"      = "aws-load-balancer-controller"
+    }
+    annotations = {
+      "eks.amazonaws.com/role-arn" = module.load_balancer_controller_irsa_role.iam_role_arn
+    }
+  }
+}
+
+module "load_balancer_controller_irsa_role" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "5.3.0"
+
+  role_name = "load-balancer-controller"
+  attach_load_balancer_controller_policy = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
+    }
   }
 }
 
